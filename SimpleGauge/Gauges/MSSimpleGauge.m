@@ -34,7 +34,7 @@
     _endAngle = 140;
     
     _arcThickness = 50;
-
+    
     _backgroundArcFillColor = [UIColor colorWithRed:.82 green:.82 blue:.82 alpha:1];
     _backgroundArcStrokeColor = [UIColor colorWithRed:.82 green:.82 blue:.82 alpha:1];
     
@@ -56,7 +56,7 @@
     
     _needleView.layer.anchorPoint = CGPointMake(.5, (height-(needleWidth/2))/height);
     _needleView.center = CGPointMake(width/2, height-needleWidth/2);
-    [self rotateNeedleByAngle:-90+_startAngle];
+    [self rotateNeedleByAngle:_startAngle];
     
     _containerLayer = [CALayer layer];
     _containerLayer.frame = CGRectMake(0, 0, width, height);
@@ -92,8 +92,7 @@
 
 - (void)rotateNeedleByAngle:(float)angle
 {
-    CATransform3D rotatedTransform = self.needleView.layer.transform;
-    rotatedTransform = CATransform3DRotate(rotatedTransform, DEGREES_TO_RADIANS(angle), 0.0f, 0.0f, 1.0f);
+    CATransform3D rotatedTransform = CATransform3DRotate(CATransform3DIdentity, DEGREES_TO_RADIANS(angle), 0.0f, 0.0f, 1.0f);
     self.needleView.layer.transform = rotatedTransform;
 }
 
@@ -141,7 +140,7 @@
 
 - (float)angleForValue:(float)value
 {
-    float ratio = value / _maxValue;
+    float ratio = (value - _minValue) / (_maxValue - _minValue);
     float angle = _startAngle + ((_endAngle - _startAngle) * ratio);
     return angle;
 }
@@ -160,15 +159,12 @@
 {
     if ( _startAngle != startAngle )
     {
-        float oldNeedleAngle = [self angleForValue:self.value];
-        
         _startAngle = startAngle;
         _backgroundArcLayer.startAngle = DEGREES_TO_RADIANS((_startAngle+180));
         _valueArcLayer.startAngle = DEGREES_TO_RADIANS((_startAngle+180));
         
         float newNeedleAngle = [self angleForValue:self.value];
-        float newAngle = newNeedleAngle - oldNeedleAngle;
-        [self rotateNeedleByAngle:newAngle];
+        [self rotateNeedleByAngle:newNeedleAngle];
     }
 }
 
@@ -176,15 +172,12 @@
 {
     if ( _endAngle != endAngle )
     {
-        float oldNeedleAngle = [self angleForValue:self.value];
-        
         _endAngle = endAngle;
         _backgroundArcLayer.endAngle = DEGREES_TO_RADIANS((_endAngle+180));
-        _valueArcLayer.endAngle = DEGREES_TO_RADIANS((oldNeedleAngle+180));
+        _valueArcLayer.endAngle = DEGREES_TO_RADIANS((_endAngle+180));
         
         float newNeedleAngle = [self angleForValue:self.value];
-        float newAngle = newNeedleAngle - oldNeedleAngle;
-        [self rotateNeedleByAngle:newAngle];
+        [self rotateNeedleByAngle:newNeedleAngle];
     }
 }
 
@@ -213,16 +206,14 @@
     if ( _value != value )
     {
         // setting value above the max value sets to max value
-        value = value > _maxValue ? _maxValue : value;
-       
+        value = MIN(value, _maxValue);
+        
         // setting value below the min value set to min value
-        value = value < _minValue ? _minValue : value;
+        value = MAX(value, _minValue);
         
-        float oldAngle = [self angleForValue:_value];
-        float newAngle = [self angleForValue:value];
         _value = value;
-        
-        [self rotateNeedleByAngle:newAngle - oldAngle];
+        float newAngle = [self angleForValue:_value];
+        [self rotateNeedleByAngle:newAngle + (_endAngle - _startAngle) - 190];
         [self fillUpToAngle:newAngle];
     }
 }
